@@ -3,7 +3,7 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 Versionado según [SemVer](https://semver.org/lang/es/).
 
-## [1.0.0] — sin publicar
+## [1.0.0] — 2026-08-22
 
 Primera versión de `prisma-seed`.
 
@@ -81,3 +81,5 @@ Catorce defectos de la 0.2.x, cada uno con su test. Los de mayor impacto:
   un servidor real.
 - **MongoDB** no soportado.
 - Sin bloqueo de concurrencia: dos `run` simultáneos pueden repetir un seeder.
+
+[1.0.0]: https://github.com/llopez0522/prisma-seed/releases/tag/v1.0.0
