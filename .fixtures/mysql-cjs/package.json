@@ -1,0 +1,12 @@
+{
+  "name": "fixture-mysql-cjs",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Proyecto Prisma minimo (CommonJS + MySQL) para verificar portabilidad de dialecto.",
+  "dependencies": {
+    "@prisma/client": "^6.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0"
+  }
+}

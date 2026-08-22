@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+
+    "declaration": true,
+    "sourceMap": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // Los seeders de `tests/integration/zenstack-v3/seeders*` se copian a un
+    // proyecto externo, donde `prisma-seed` resuelve por node_modules.
+    // Aqui se mapea al propio codigo para que tambien los cubra el typecheck.
+    "paths": {
+      "prisma-seed": ["./src/index.ts"]
+    }
+  },
+  "include": ["src", "tests", "*.config.ts"],
+  // `tests/types` se compila con su propio tsconfig contra clientes reales
+  // (ver tests/types/run.sh): aqui `@prisma/client` no tiene cliente generado.
+  "exclude": ["node_modules", "dist", ".fixtures", ".sandbox", "tests/types"]
+}

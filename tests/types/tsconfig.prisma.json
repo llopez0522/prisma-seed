@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "types": ["node"],
+    // Sin `baseUrl`: TypeScript 6 lo deprecó. Desde TS 5 los `paths` se
+    // resuelven relativos al propio tsconfig, que es justo lo que hace falta.
+    "paths": {
+      // El cliente GENERADO del fixture, no el de la raiz: en la raiz no hay
+      // schema, asi que `PrismaClient` seria `any` y la prueba no probaria nada.
+      "@prisma/client": ["../../.fixtures/pg-cjs/node_modules/@prisma/client"]
+    }
+  },
+  "include": ["prisma-client.test-d.ts"]
+}

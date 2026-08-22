@@ -1,0 +1,25 @@
+{
+  // El tsconfig que usa tsup para emitir `dist/`.
+  //
+  // Existe por una razon concreta: el tsconfig raiz declara `paths` para que los
+  // seeders de prueba de `tests/integration/real-client/` —que importan el
+  // paquete por su nombre— entren en el typecheck. Esa asignacion es cosa de los
+  // tests, y ademas obliga a tsup a inyectar `baseUrl`, que TypeScript 6
+  // deprecó y hace fallar la emision de tipos con TS5101.
+  //
+  // Aqui se anula `paths` y se compila solo `src`, que es lo que se publica.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {},
+
+    // tsup 8.5.1 fija `baseUrl: compilerOptions.baseUrl || "."` a mano en
+    // `dist/rollup.js`, asi que la emision de tipos siempre lo recibe — no hay
+    // tsconfig que lo evite. TypeScript 6 lo deprecó y falla con TS5101.
+    //
+    // Este flag es transitorio y dejara de existir en TypeScript 7. Va SOLO
+    // aqui, no en el tsconfig raiz: el typecheck del proyecto sigue sin
+    // silenciar deprecaciones. Quitarlo cuando tsup deje de inyectarlo.
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,13 @@
+dist
+.fixtures
+.sandbox
+node_modules
+coverage
+package-lock.json
+
+# La documentacion va con saltos de linea puestos a mano y tablas alineadas.
+# Prettier la reflow­ea y el diff no aporta nada.
+*.md
+
+# Estado del editor, no codigo fuente.
+.claude

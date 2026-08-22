@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Ejecuta comandos de Node dentro de Docker. La maquina local no necesita Node.
+#
+#   ./dx npm install              # instala dependencias en el volumen
+#   ./dx npm run build
+#   ./dx node cli.js generate user
+#   ./dx shell                    # bash interactivo en el contenedor
+#   ./dx --node24 node -e '...'   # mismo comando en Node 24 (sin bases de datos)
+#   ./dx psql                     # cliente de Postgres contra la base de pruebas
+#   ./dx mysql                    # cliente de MySQL contra la base de pruebas
+#   ./dx down                     # detiene y limpia los servicios
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+SERVICE=dev
+
+case "${1:-}" in
+  --node24) SERVICE=node24; shift ;;
+  --dev)    SERVICE=dev;    shift ;;
+esac
+
+case "${1:-}" in
+  down)
+    exec docker compose down --volumes --remove-orphans
+    ;;
+  shell)
+    exec docker compose run --rm "$SERVICE" bash
+    ;;
+  psql)
+    exec docker compose exec postgres psql -U prisma -d seeder_test "${@:2}"
+    ;;
+  mysql)
+    exec docker compose exec mysql mysql -uroot -pprisma seeder_test "${@:2}"
+    ;;
+  "")
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    exit 2
+    ;;
+esac
+
+exec docker compose run --rm "$SERVICE" "$@"

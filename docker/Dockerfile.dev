@@ -1,0 +1,27 @@
+ARG NODE_VERSION=22
+
+# Debian slim en lugar de Alpine: los motores de Prisma dependen de OpenSSL y de
+# binarios glibc. En Alpine haria falta la variante musl y da mas problemas que valor.
+FROM node:${NODE_VERSION}-bookworm-slim
+
+# openssl  -> requerido por los query engines de Prisma
+# ca-certificates -> descargas de engines por HTTPS
+# postgresql-client / default-mysql-client -> inspeccion manual de la BD al verificar bugs
+# git -> changesets y metadatos del repo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      openssl \
+      ca-certificates \
+      postgresql-client \
+      default-mysql-client \
+      git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# node_modules vive en un volumen nombrado montado aqui (ver docker-compose.yml),
+# asi el bind mount del host nunca lo pisa y la maquina local queda sin artefactos.
+ENV NODE_ENV=development \
+    npm_config_update_notifier=false \
+    npm_config_fund=false
+
+CMD ["bash"]

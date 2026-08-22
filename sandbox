@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+# Banco de pruebas LOCAL: instala el paquete empaquetado en un proyecto Prisma de
+# verdad y lo ejercita contra el Postgres de docker-compose.
+#
+# Es la prueba de mayor fidelidad que hay aqui: usa el .tgz real, asi que detecta
+# un `files` incompleto, un `bin` mal apuntado o un `exports` roto. Compilar y
+# pasar los tests NO comprueba nada de eso.
+#
+#   ./sandbox all         # instalar + CLI + API + tipos  (empieza por aqui)
+#   ./sandbox install     # empaquetar, instalar el tarball y aplicar el schema
+#   ./sandbox cli         # generate / status / run / rollback / refresh / fresh
+#   ./sandbox api         # API programatica (ESM), require (CJS) y tipos
+#   ./sandbox reset       # vaciar la base del banco
+#   ./sandbox shell       # bash dentro del banco, para trastear a mano
+#
+# El proyecto de prueba vive en .sandbox/ (ignorado por git) y su node_modules en
+# un volumen, asi que la maquina local no necesita Node.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' package.json | head -1)"
+TGZ="prisma-seed-${VERSION}.tgz"
+
+en_contenedor() {
+  docker compose run --rm dev bash -lc "cd /app/.sandbox && export DATABASE_URL=\"\$POSTGRES_URL\" && $1"
+}
+
+# Los archivos de prueba se regeneran siempre: .sandbox/ no esta versionado, y asi
+# lo que se ejercita corresponde exactamente a esta version del repositorio.
+escribir_pruebas() {
+  mkdir -p .sandbox/prisma/seeders
+
+  # El proyecto de prueba entero, incluida la dependencia al tarball de ESTA
+  # version. `.sandbox/` no esta versionado, asi que generarlo es lo que hace que
+  # `./sandbox all` funcione desde un clon limpio.
+  cat > .sandbox/package.json <<JSON
+{
+  "name": "proyecto-de-prueba",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "prisma": "^6.19.3",
+    "prisma-seed": "file:../${TGZ}"
+  }
+}
+JSON
+
+  cat > .sandbox/prisma/schema.prisma <<'PRISMA'
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Producto {
+  id     Int    @id @default(autoincrement())
+  nombre String
+  sku    String @unique
+}
+PRISMA
+
+  cat > .sandbox/prisma/seeders/20240101000001_Producto.js <<'SEED'
+async function main({ prisma, logger }) {
+  await prisma.producto.create({ data: { nombre: "Teclado", sku: "TEC-1" } });
+  logger.info("producto creado");
+}
+async function down({ prisma, logger }) {
+  const { count } = await prisma.producto.deleteMany({ where: { sku: "TEC-1" } });
+  logger.info(`${count} eliminados`);
+}
+module.exports = { main, down };
+SEED
+
+  cat > .sandbox/seed.mjs <<'JS'
+// Uso programatico desde ESM, tal como lo haria un consumidor.
+import { PrismaClient } from '@prisma/client';
+import { capabilitiesOf, rollbackSeeders, runSeeders } from 'prisma-seed';
+
+const prisma = new PrismaClient();
+
+console.log('capacidades:', capabilitiesOf(prisma));
+console.log('run     :', JSON.stringify(await runSeeders(prisma)));
+
+// Si la libreria hubiera cerrado el cliente, esto explotaria.
+console.log('sigue vivo:', (await prisma.producto.findMany()).length, 'producto(s)');
+console.log('rollback:', JSON.stringify(await rollbackSeeders(prisma, { all: true })));
+
+await prisma.$disconnect();   // lo cierra QUIEN lo abrio
+console.log('OK');
+JS
+
+  cat > .sandbox/seed.cjs <<'JS'
+// El mismo paquete desde CommonJS: exports.require -> dist/index.cjs
+const { runSeeders } = require('prisma-seed');
+console.log('CJS require OK:', typeof runSeeders);
+JS
+
+  cat > .sandbox/tipos.ts <<'TS'
+// Los tipos PUBLICADOS contra un PrismaClient generado de verdad.
+import { PrismaClient } from '@prisma/client';
+import { runSeeders, type SeedClient, type SeedContext } from 'prisma-seed';
+
+declare const prisma: PrismaClient;
+const comoContrato: SeedClient = prisma; // sin cast
+
+export async function main(): Promise<void> {
+  await runSeeders(prisma);
+  void comoContrato;
+}
+
+export async function seed({ prisma: p }: SeedContext<PrismaClient>): Promise<void> {
+  await p.producto.findMany();
+}
+TS
+
+  cat > .sandbox/tsconfig.json <<'JSON'
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noEmit": true, "skipLibCheck": true
+  },
+  "include": ["tipos.ts"]
+}
+JSON
+}
+
+cmd_install() {
+  echo "--- empaquetando (prepack compila) ---"
+  rm -f ./*.tgz
+  docker compose run --rm dev npm pack >/dev/null
+  echo "  $TGZ"
+
+  escribir_pruebas
+  echo "--- instalando el tarball en .sandbox ---"
+  # Se borra el paquete instalado para que npm no reutilice el .tgz anterior: el
+  # nombre del archivo no cambia entre versiones, asi que npm lo da por bueno.
+  #
+  # OJO: el borrado va DENTRO del contenedor. `.sandbox/node_modules` es un
+  # volumen de Docker y no existe en el host; hacerlo desde fuera no borra nada
+  # y se acaba probando el build anterior sin enterarse.
+  rm -f .sandbox/package-lock.json
+  en_contenedor "rm -rf node_modules/prisma-seed"
+  en_contenedor "npm install --no-audit --no-fund 2>&1 | tail -2"
+  en_contenedor "grep -q 'prisma-seed' node_modules/prisma-seed/package.json && echo '  instalado'"
+  en_contenedor "npm install --no-save --no-audit --no-fund typescript >/dev/null 2>&1; true"
+
+  echo "--- aplicando el schema a Postgres ---"
+  en_contenedor "npx prisma db push --skip-generate --accept-data-loss >/dev/null && npx prisma generate >/dev/null && echo '  listo'"
+}
+
+cmd_reset() {
+  # Con el cliente, no con `prisma db execute`: aquel se traga los fallos con el
+  # `|| true` y se acaba probando sobre una base sucia sin enterarse.
+  en_contenedor "node -e '
+    const { PrismaClient } = require(\"@prisma/client\");
+    const p = new PrismaClient();
+    (async () => {
+      await p.\$executeRawUnsafe(\"DROP TABLE IF EXISTS \\\"SeedExecution\\\"\");
+      await p.\$executeRawUnsafe(\"DELETE FROM \\\"Producto\\\"\");
+      await p.\$disconnect();
+      console.log(\"  base vaciada\");
+    })();
+  '"
+}
+
+cmd_cli() {
+  cmd_reset
+  echo
+  echo "=== version ==="            ; en_contenedor "npx prisma-seed --version"
+  echo; echo "=== generate --ts ===" ; en_contenedor "npx prisma-seed generate Categoria --ts && head -4 prisma/seeders/*_Categoria.ts && rm -f prisma/seeders/*_Categoria.ts"
+  echo; echo "=== status (nada aplicado) ==="; en_contenedor "npx prisma-seed status"
+  echo; echo "=== run --verbose ===" ; en_contenedor "npx prisma-seed run --verbose"
+  echo; echo "=== status (aplicado) ==="; en_contenedor "npx prisma-seed status"
+  echo; echo "=== run (idempotencia) ==="; en_contenedor "npx prisma-seed run"
+  echo; echo "=== rollback ==="      ; en_contenedor "npx prisma-seed rollback"
+  echo; echo "=== refresh ==="       ; en_contenedor "npx prisma-seed refresh"
+  echo; echo "=== fresh --seed --force ==="; en_contenedor "npx prisma-seed fresh --seed --force"
+}
+
+cmd_api() {
+  cmd_reset
+  echo; echo "=== API programatica (ESM) ==="; en_contenedor "node seed.mjs"
+  echo; echo "=== require (CJS) ==="         ; en_contenedor "node seed.cjs"
+  echo; echo "=== tipos publicados ==="      ; en_contenedor "./node_modules/.bin/tsc -p tsconfig.json && echo '  TIPOS OK'"
+}
+
+case "${1:-}" in
+  install) cmd_install ;;
+  cli)     cmd_cli ;;
+  api)     cmd_api ;;
+  reset)   cmd_reset ;;
+  all)     cmd_install; cmd_cli; cmd_api; echo; echo "BANCO DE PRUEBAS OK" ;;
+  shell)   docker compose run --rm dev bash -lc 'cd /app/.sandbox && export DATABASE_URL="$POSTGRES_URL" && exec bash' ;;
+  *)       sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

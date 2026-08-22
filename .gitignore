@@ -1,0 +1,18 @@
+node_modules/
+extras/
+*.log
+.npmignore
+dist/
+coverage/
+.DS_Store
+
+# Solo el directorio prisma/ de la raiz (scratch de desarrollo). Los fixtures
+# bajo .fixtures/*/prisma/ SI se versionan: son parte de la suite de pruebas.
+/prisma/
+
+# Seeders generados por los tests dentro de los fixtures.
+.fixtures/*/prisma/seeders/
+
+# Banco de pruebas manual del paquete empaquetado (ver IMPLEMENTACION.md).
+.sandbox/
+*.tgz

@@ -1,0 +1,81 @@
+{
+  "name": "prisma-seed",
+  "version": "1.0.0",
+  "description": "A CLI tool to generate and manage Prisma seed files, with Laravel-style commands.",
+  "type": "module",
+  "bin": {
+    "prisma-seed": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,js,json,md,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml}\"",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration --passWithNoTests",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "prisma",
+    "seeds",
+    "seeder",
+    "generator",
+    "cli",
+    "database",
+    "migration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abel-martelo/prisma-seed"
+  },
+  "author": "the-one-sky",
+  "license": "MIT",
+  "dependencies": {
+    "@inquirer/prompts": "^8.6.0",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=5 <7"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@prisma/client": "^6.1.0",
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.9.0",
+    "prettier": "^3.9.6",
+    "prisma": "^6.19.3",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

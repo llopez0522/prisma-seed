@@ -1,0 +1,85 @@
+name: prisma-seed
+
+# Volumen compartido por los servicios de node: mantiene node_modules fuera del
+# bind mount, de modo que la maquina local no necesita Node ni acumula artefactos.
+x-node-common: &node-common
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.dev
+  working_dir: /app
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+    - fixture_modules:/app/.fixtures/pg-cjs/node_modules
+    - fixture_modules_mysql:/app/.fixtures/mysql-cjs/node_modules
+    - fixture_modules_sqlite:/app/.fixtures/sqlite-cjs/node_modules
+    # Banco de pruebas manual: instala el tarball como lo haria un usuario.
+    - sandbox_modules:/app/.sandbox/node_modules
+  environment:
+    DATABASE_URL: postgresql://prisma:prisma@postgres:5432/seeder_test?schema=public
+    POSTGRES_URL: postgresql://prisma:prisma@postgres:5432/seeder_test?schema=public
+    MYSQL_URL: mysql://root:prisma@mysql:3306/seeder_test
+    SQLITE_URL: file:/tmp/seeder_test.db
+  init: true
+
+services:
+  # Servicio principal de trabajo. Node 22, el minimo que declara "engines".
+  #   docker compose run --rm dev npm install
+  dev:
+    <<: *node-common
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # Node 24: el otro extremo del rango soportado. No depende de las bases.
+  node24:
+    <<: *node-common
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      args:
+        NODE_VERSION: 24
+    volumes:
+      - .:/app
+      - node_modules_24:/app/node_modules
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: prisma
+      POSTGRES_DB: seeder_test
+    ports:
+      - '55432:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prisma -d seeder_test']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: prisma
+      MYSQL_DATABASE: seeder_test
+    ports:
+      - '53306:3306'
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-pprisma']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  node_modules:
+  node_modules_24:
+  fixture_modules:
+  fixture_modules_mysql:
+  fixture_modules_sqlite:
+  sandbox_modules:
