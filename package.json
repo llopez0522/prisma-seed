@@ -1,7 +1,7 @@
 {
   "name": "prisma-seed",
   "version": "1.0.0",
-  "description": "A CLI tool to generate and manage Prisma seed files, with Laravel-style commands.",
+  "description": "Versioned, reversible database seeding for Prisma projects: run-once seeders, batches and rollback, with Laravel-style commands.",
   "type": "module",
   "bin": {
     "prisma-seed": "dist/cli.js"
@@ -36,12 +36,21 @@
   },
   "keywords": [
     "prisma",
+    "prisma-client",
+    "seed",
     "seeds",
     "seeder",
-    "generator",
-    "cli",
+    "seeding",
     "database",
-    "migration"
+    "migration",
+    "migrations",
+    "rollback",
+    "cli",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "typescript",
+    "zenstack"
   ],
   "repository": {
     "type": "git",

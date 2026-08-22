@@ -67,4 +67,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+
+      # Cada fixture es un proyecto Prisma independiente con su propio cliente
+      # generado: el `provider` se fija en su schema.prisma, asi que hay que
+      # instalarlo y generarlo uno por uno. Sin este paso los tests de
+      # integracion fallan enteros — `new PrismaClient()` lanza "did not
+      # initialize yet" porque no hay cliente para ese schema.
+      - name: Preparar los fixtures
+        run: |
+          set -euo pipefail
+          for par in "pg-cjs:$POSTGRES_URL" "mysql-cjs:$MYSQL_URL" "sqlite-cjs:$SQLITE_URL"; do
+            dir="${par%%:*}"
+            url="${par#*:}"
+            echo "::group::$dir"
+            (
+              cd ".fixtures/$dir"
+              npm install --no-audit --no-fund
+              DATABASE_URL="$url" npx prisma generate
+            )
+            echo "::endgroup::"
+          done
+
       - run: npm run test:integration
