@@ -56,6 +56,11 @@ jobs:
           --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pprisma"
           --health-interval 5s --health-timeout 5s --health-retries 30
     env:
+      # `prisma.test.ts` ejercita el camino AUTOMATICO de la libreria, que hace
+      # `new PrismaClient()` sin argumentos: la URL la lee Prisma del entorno,
+      # no se la pasa nadie. Es la misma variable que define docker-compose.yml
+      # para el entorno local.
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/seeder_test?schema=public
       POSTGRES_URL: postgresql://prisma:prisma@localhost:5432/seeder_test?schema=public
       MYSQL_URL: mysql://root:prisma@localhost:3306/seeder_test
       SQLITE_URL: file:/tmp/seeder_test.db
