@@ -26,8 +26,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"**/*.{ts,js,json,md,yml}\"",
-    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml}\"",
+    "format": "prettier --write \"{src,tests}/**/*.{ts,mts}\" \"*.{ts,js,json}\" \".github/**/*.yml\" \"docker-compose.yml\"",
+    "format:check": "prettier --check \"{src,tests}/**/*.{ts,mts}\" \"*.{ts,js,json}\" \".github/**/*.yml\" \"docker-compose.yml\"",
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
     "test:integration": "vitest run --project integration --passWithNoTests",
@@ -45,9 +45,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/abel-martelo/prisma-seed"
+    "url": "git+https://github.com/llopez0522/prisma-seed.git"
   },
-  "author": "the-one-sky",
+  "homepage": "https://github.com/llopez0522/prisma-seed#readme",
+  "bugs": {
+    "url": "https://github.com/llopez0522/prisma-seed/issues"
+  },
+  "author": "Luis Lopez <luism.lopezl22@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@inquirer/prompts": "^8.6.0",
