@@ -72,7 +72,7 @@
   },
   "peerDependenciesMeta": {
     "@prisma/client": {
-      "optional": false
+      "optional": true
     }
   },
   "devDependencies": {

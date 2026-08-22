@@ -57,9 +57,9 @@ small contract — including the `ZenStackClient` from ZenStack v3.
 | **Databases** | PostgreSQL, MySQL, SQLite or SQL Server. MongoDB is not supported. |
 | **TypeScript** | Optional. The package ships its own type declarations; JavaScript projects work without any TypeScript setup. |
 
-`@prisma/client` is currently declared as a **required** peer dependency
-(`>=5 <7`), so npm will install it even in projects that inject a different
-client. See [Compatibility](#compatibility).
+`@prisma/client` is an **optional** peer dependency (`>=5 <7`). Install it if you
+want the CLI to build the client for you; a project that injects its own client
+does not need it, and npm will not pull it in.
 
 Running seeders written in TypeScript additionally needs a loader — see
 [TypeScript](#typescript).
@@ -788,7 +788,7 @@ both, and the seeder stays pending.
 | Technology | Support | Verified |
 |---|---|---|
 | `PrismaClient` (`@prisma/client` 6) | Supported | Yes — PostgreSQL 16, MySQL 8, SQLite |
-| Prisma 5 | Declared in `peerDependencies` (`>=5 <7`) | Not verified |
+| Prisma 5 | Declared in `peerDependencies` (`>=5 <7`, optional) | Not verified |
 | Prisma 7 | Only by injecting the client; the automatic path needs driver adapters | Not verified |
 | ZenStack v3 (`@zenstackhq/orm` 3.9.1) | Supported | Yes — PostgreSQL 17, in a Next.js 16 application |
 | PostgreSQL | Supported | Yes |
